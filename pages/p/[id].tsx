@@ -1,43 +1,53 @@
-import React from "react"
-import { GetServerSideProps } from "next"
-import ReactMarkdown from "react-markdown"
-import Layout from "../../components/Layout"
-import { PostProps } from "../../components/Post"
-import prisma from '../../lib/prisma'
+import React from 'react';
+import { GetServerSideProps } from 'next';
+import ReactMarkdown from 'react-markdown';
+import Router from 'next/router';
+import Layout from '../../components/Layout';
+import { PostProps } from '../../components/Post';
+import prisma from '../../lib/prisma';
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const post = await prisma.post.findUnique({
     where: {
-      id: String(params?.id)
+      id: String(params?.id),
     },
     include: {
       author: {
-        select: { name: true }
-      }
-    }
-  })
-
+        select: { name: true, email: true },
+      },
+    },
+  });
   return {
     props: post,
-  }
+  };
+};
+
+async function publishPost(id: string): Promise<void> {
+  await fetch(`/api/publish/${id}`, {
+    method: 'PUT',
+  });
+  await Router.push('/');
 }
 
 const Post: React.FC<PostProps> = (props) => {
-  let title = props.title
+  let title = props.title;
   if (!props.published) {
-    title = `${title} (Draft)`
+    title = `${title} (Draft)`;
   }
 
   return (
     <Layout>
       <div>
         <h2>{title}</h2>
-        <p>By {props?.author?.name || "Unknown author"}</p>
+        <p>By {props?.author?.name || 'Unknown author'}</p>
         <ReactMarkdown children={props.content} />
+        {!props.published && (
+          <button onClick={() => publishPost(props.id)}>Publish</button>
+        )}
       </div>
       <style jsx>{`
         .page {
-          background: white;
+          background: var(--geist-background);
           padding: 2rem;
         }
 
@@ -57,7 +67,7 @@ const Post: React.FC<PostProps> = (props) => {
         }
       `}</style>
     </Layout>
-  )
-}
+  );
+};
 
-export default Post
+export default Post;
